@@ -57,7 +57,7 @@
  *****************************************************************************/
 
 #if !(defined(BOARD_maple) || defined(BOARD_maple_RET6) ||      \
-      defined(BOARD_maple_mini) || defined(BOARD_maple_native))
+      defined(BOARD_maple_mini) || defined(BOARD_maple_native) ||  defined(BOARD_ett_stm32))
 
 #warning ("Warning! USB VCOM relies on LeafLabs board-specific "        \
           "configuration right now.  If you want, you can pretend "     \

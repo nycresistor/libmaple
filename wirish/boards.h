@@ -125,6 +125,8 @@ bool boardUsesPin(uint8 pin);
 #include "maple_native.h"
 #elif defined(BOARD_maple_mini)
 #include "maple_mini.h"
+#elif defined(BOARD_ett_stm32)
+#include "ett_stm32.h"
 #elif defined(BOARD_maple_RET6)
 /*
  * **NOT** MAPLE REV6.  This the **Maple RET6 EDITION**, which is a
