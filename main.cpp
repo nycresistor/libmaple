@@ -14,8 +14,8 @@
 #define X_STOP_1 10
 #define X_STOP_2 2
 
-#define STOP 32768
-#define LOW_SPEED_LEFT (STOP + 2700)
+#define STOP 32222
+#define LOW_SPEED_LEFT (STOP + 3200)
 
 //Modes
 #define NUM_MODES 3
@@ -23,17 +23,17 @@
 #define HOME 1
 #define RUN 2
 
-int mode = 0;
+volatile int mode = 0;
 
 //Position
-signed long current_x=0;
-signed long current_y=0;
+volatile signed long current_x=0;
+volatile signed long current_y=0;
 signed short delta_x=0,delta_y=0;
 
 //Control
 unsigned short knob_val=0;
-unsigned short pwm_x=0;
-unsigned short pwm_y=0;
+volatile unsigned short pwm_x=0;
+volatile unsigned short pwm_y=0;
 
 //Homing
 bool XStop1 = 0; //First
@@ -49,6 +49,24 @@ bool button1State;
 bool lastButton1State;
 int lastDebounceTime = 0;
 int debounceDelay = 100;
+
+void homedX() {
+	pwm_x = STOP;
+	pwmWrite(PWM_PIN_X,pwm_x);
+	
+	current_x = 0;
+	timer_set_count(TIMER4, 0);
+	mode = STOP;
+}
+
+void homedY() {
+	pwm_y = STOP;
+	//pwmWrite(PWM_PIN_Y, pwm_y);
+	
+	current_y = 0;
+	timer_set_count(TIMER1, 0);
+	mode = STOP;
+}
 
 void setup() {
 
@@ -99,6 +117,8 @@ void setup() {
     //Setup stops
     pinMode(X_STOP_1, INPUT);
     pinMode(X_STOP_2, INPUT);
+    attachInterrupt(X_STOP_2, homedX, RISING);
+    //attachInterrupt(Y_STOP_2, homedY, RISING);
     
     pinMode(BUTTON1, INPUT);
     
@@ -125,7 +145,7 @@ void printStatus() {
     	SerialUSB.print("ERROR ");
     }
     SerialUSB.print(mode);
-	SerialUSB.print("X1:");
+	SerialUSB.print(" X1:");
 	SerialUSB.print(XStop1);
 	SerialUSB.print(" X2:");
 	SerialUSB.print(XStop2);
@@ -184,6 +204,7 @@ void loop() {
     
 	if (mode == RUN) {
 		
+		//Generate PWM value based on knob position
 		pwm_x=32768+(knob_val<<2)-8192;
 		
 		//Read the clear the encoder registers
@@ -196,15 +217,7 @@ void loop() {
 		
 	} else if (mode == HOME) {
 	
-		if (XStop2 == HIGH) {
-			pwm_x = STOP;
-			
-			current_x = 0;
-			timer_set_count(TIMER4, 0);
-			mode = RUN;
-		} else {
-			pwm_x = LOW_SPEED_LEFT;
-		}
+		pwm_x = LOW_SPEED_LEFT;
 		
 	} else {
 		
