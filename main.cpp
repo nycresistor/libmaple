@@ -3,13 +3,23 @@
 #include "wirish.h"
 #include "usb.h"
 #include "timer.h"
+
+#define PWM_PIN_X 11
 #define X_ENCODER_A 5 //PB6 Timer4_CH1
 #define X_ENCODER_B 9 //PB7 Timer4_CH2
 #define Y_ENCODER_A 6 //PA8 Timer1_CH1
 #define Y_ENCODER_B 7 //PB9 Timer1_CH2
 
-#define X_STOP_1 2
-#define X_STOP_3 3
+#define X_STOP_1 10
+#define X_STOP_2 2
+
+#define CENTER 32768
+#define LOW_SPEED 2048
+
+#define HOME 0
+#define RUN 1
+
+int mode = 0;
 
 unsigned short knob_val=0;
 unsigned short pwm_x=0;
@@ -23,8 +33,7 @@ int toggle = 1;
 int toggle2 = 0;
 
 bool XStop1 = 0; //First
-bool XStop2 = 0; //Middle
-bool XStop3 = 0; //Absolute Home
+bool XStop2 = 0; //Home
 
 void setup() {
 
@@ -38,7 +47,7 @@ void setup() {
     pinMode(Y_ENCODER_B, INPUT);
     
     //PWM Setup
-    pinMode(11,PWM);
+    pinMode(PWM_PIN_X,PWM);
     
     //Encoder setup
     timer_init(TIMER1);
@@ -74,19 +83,25 @@ void setup() {
     
     //Setup stops
     pinMode(X_STOP_1, INPUT);
-    pinMode(X_STOP_3, INPUT);
+    pinMode(X_STOP_2, INPUT);
     
     SerialUSB.println("Hello");
 }
 
 void printStatus() {
-
+	
+	if (knob_val < 1900) {
+    	indicator = 'L';
+    } else if (knob_val > 2200) {
+    	indicator = 'R';
+    } else {
+    	indicator = 'C';
+    }
+    
 	SerialUSB.print("X1:");
 	SerialUSB.print(XStop1);
 	SerialUSB.print(" X2:");
 	SerialUSB.print(XStop2);
-	SerialUSB.print(" X3:");
-	SerialUSB.print(XStop3);
 	
     SerialUSB.print(" KnobVal: ");
     SerialUSB.print(knob_val);
@@ -110,30 +125,27 @@ void loop() {
 	
 	//Read the stops
 	XStop1 = !digitalRead(X_STOP_1);
-	XStop3 = !digitalRead(X_STOP_3);
+	XStop2 = !digitalRead(X_STOP_2);
 	
-	//Read the knob and generate a PWM value
-    knob_val=analogRead(3);
-    pwm_x=32768+(knob_val<<2)-8192;
+	
+	if (mode == RUN) {
+		//Read the knob and generate a PWM value
+		knob_val=analogRead(3);
+		pwm_x=32768+(knob_val<<2)-8192;
+		
+		//Read the clear the encoder registers
+		delta_x=(signed short)timer_get_count(TIMER4);
+		delta_y=(signed short)timer_get_count(TIMER1);
+		current_x+=delta_x;
+		current_y+=delta_y;
+		timer_set_count(TIMER4,timer_get_count(TIMER4)-delta_x);
+		timer_set_count(TIMER1,timer_get_count(TIMER1)-delta_y);
+		
+		//Output the PWM
+		pwmWrite(PWM_PIN_X,pwm_x);
+	}
     
-    //Read the clear the encoder registers
-    delta_x=(signed short)timer_get_count(TIMER4);
-    delta_y=(signed short)timer_get_count(TIMER1);
-    current_x+=delta_x;
-    current_y+=delta_y;
-    timer_set_count(TIMER4,timer_get_count(TIMER4)-delta_x);
-    timer_set_count(TIMER1,timer_get_count(TIMER1)-delta_y);
-    
-    //Output the PWM
-    pwmWrite(11,pwm_x);
-    
-    if (knob_val < 1900) {
-    	indicator = 'L';
-    } else if (knob_val > 2200) {
-    	indicator = 'R';
-    } else {
-    	indicator = 'C';
-    }
+
     
     printStatus();
 
