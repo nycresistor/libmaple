@@ -15,7 +15,7 @@
 #define X_STOP_2 2
 
 #define STOP 32222
-#define LOW_SPEED_LEFT (STOP + 3200)
+#define LOW_SPEED_LEFT (STOP + 3100)
 
 //Modes
 #define NUM_MODES 3
@@ -56,6 +56,7 @@ int debounceDelay = 100;
 
 void homedX() {
 		
+	if (current_x != 0) {
 		pwm_x = STOP;
 		pwmWrite(PWM_PIN_X,pwm_x);
 	
@@ -63,6 +64,7 @@ void homedX() {
 		timer_set_count(TIMER4, 0);
 	
 		mode = ALL_STOP;
+	}
 }
 
 void homedY() {
@@ -124,7 +126,7 @@ void setup() {
     //Setup stops
     pinMode(X_STOP_1, INPUT);
     pinMode(X_STOP_2, INPUT);
-    //attachInterrupt(X_STOP_2, homedX, FALLING);
+    attachInterrupt(X_STOP_2, homedX, FALLING);
     //attachInterrupt(Y_STOP_2, homedY, FALLING);
     
     pinMode(BUTTON1, INPUT);
@@ -217,17 +219,17 @@ void loop() {
     checkEncoders();
     knob_val=analogRead(3);
 	
-	//Read the stops
-	XStop1 = !digitalRead(X_STOP_1);
-	XStop2 = !digitalRead(X_STOP_2);
-	
-	if (XStop2Last != XStop2) {
-		
-		if (XStop2 == HIGH) {
-			homedX();
-		}
-		XStop2Last = XStop2;
-	}
+	// Read the stops
+// 	XStop1 = !digitalRead(X_STOP_1);
+// 	XStop2 = !digitalRead(X_STOP_2);
+// 	
+// 	if (XStop2Last != XStop2) {
+// 		
+// 		if (XStop2 == HIGH) {
+// 			homedX();
+// 		}
+// 		XStop2Last = XStop2;
+// 	}
     
 	if (mode == RUN) {
 		
