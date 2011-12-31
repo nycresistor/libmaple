@@ -14,20 +14,26 @@ unsigned short pwm_y=0;
 signed long current_x=0;
 signed long current_y=0;
 signed short delta_x=0,delta_y=0;
+char indicator = '0';
 
+int toggle = 1;
+int toggle2 = 0;
 
 void setup() {
-    pinMode(14, OUTPUT);
-    pinMode(24, OUTPUT);
-    pinMode(29, OUTPUT);
+
+	//Potentiometer
     pinMode(3, INPUT_ANALOG);
-    pinMode(X_ENCODER_A, INPUT);
+    
+    //Encoders
+    pinMode(X_ENCODER_A, INPUT); 
     pinMode(X_ENCODER_B, INPUT);
     pinMode(Y_ENCODER_A, INPUT);
     pinMode(Y_ENCODER_B, INPUT);
-    pinMode(11,PWM);    
-    digitalWrite(24,1);
-    SerialUSB.println("Hello");
+    
+    //PWM Setup
+    pinMode(11,PWM);
+    
+    //Encoder setup
     timer_init(TIMER1);
     timer_init(TIMER4);
     timer_pause(TIMER1);
@@ -51,11 +57,37 @@ void setup() {
     timer_generate_update(TIMER1);
     timer_generate_update(TIMER4);
     timer_resume(TIMER1);
-    timer_resume(TIMER4);    
+    timer_resume(TIMER4);   
+        
+    //Debug LEDs    
+    pinMode(14, OUTPUT);
+    pinMode(24, OUTPUT);
+    pinMode(29, OUTPUT);
+    digitalWrite(24,1);
+    
+    SerialUSB.println("Hello");
 }
 
-int toggle = 1;
-int toggle2 = 0;
+void printStatus() {
+
+    SerialUSB.print("KnobVal: ");
+    SerialUSB.print(knob_val);
+    SerialUSB.print(" ");
+    SerialUSB.print(indicator);
+    SerialUSB.print(" PWM: ");
+    SerialUSB.print(pwm_x);
+    SerialUSB.print(" X_pos: ");
+    SerialUSB.println(current_x);
+}
+
+void blinkLights() {
+	digitalWrite(14, toggle);
+    digitalWrite(24, toggle2);
+    digitalWrite(29, toggle);
+    toggle ^= 1;
+    toggle2 ^= 1;
+}
+
 void loop() {
     // You could just use toggleLED() instead, but this illustrates
     // the use of digitalWrite():
@@ -68,15 +100,19 @@ void loop() {
     timer_set_count(TIMER4,timer_get_count(TIMER4)-delta_x);
     timer_set_count(TIMER1,timer_get_count(TIMER1)-delta_y);
     pwmWrite(11,pwm_x);
-    SerialUSB.print("Output:");
-    SerialUSB.print(pwm_x);
-    SerialUSB.print(" X_pos:");
-    SerialUSB.println(current_x);
-    digitalWrite(14, toggle);
-    digitalWrite(24, toggle2);
-    digitalWrite(29, toggle);
-    toggle ^= 1;
-    toggle2 ^= 1;
+    
+    if (knob_val < 1900) {
+    	indicator = 'L';
+    } else if (knob_val > 2200) {
+    	indicator = 'R';
+    } else {
+    	indicator = 'C';
+    }
+    
+    printStatus();
+
+    blinkLights();
+    
     //delay(10);
 }
 
