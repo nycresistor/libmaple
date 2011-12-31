@@ -9,31 +9,39 @@
 #define X_ENCODER_B 9 //PB7 Timer4_CH2
 #define Y_ENCODER_A 6 //PA8 Timer1_CH1
 #define Y_ENCODER_B 7 //PB9 Timer1_CH2
+#define BUTTON1 21
 
 #define X_STOP_1 10
 #define X_STOP_2 2
 
-#define CENTER 32768
-#define LOW_SPEED 2048
+#define STOP 32768
+#define LOW_SPEED_LEFT (STOP + 2700)
 
 #define HOME 0
 #define RUN 1
 
 int mode = 0;
 
-unsigned short knob_val=0;
-unsigned short pwm_x=0;
-unsigned short pwm_y=0;
+//Position
 signed long current_x=0;
 signed long current_y=0;
 signed short delta_x=0,delta_y=0;
-char indicator = '0';
 
-int toggle = 1;
-int toggle2 = 0;
+//Control
+unsigned short knob_val=0;
+unsigned short pwm_x=0;
+unsigned short pwm_y=0;
 
+//Homing
 bool XStop1 = 0; //First
 bool XStop2 = 0; //Home
+bool YStop1 = 0; //First
+bool YStop2 = 0; //Home
+
+//Debug
+int toggle = 1;
+int toggle2 = 0;
+char indicator = '0';
 
 void setup() {
 
@@ -85,6 +93,8 @@ void setup() {
     pinMode(X_STOP_1, INPUT);
     pinMode(X_STOP_2, INPUT);
     
+    pinMode(BUTTON1, INPUT);
+    
     SerialUSB.println("Hello");
 }
 
@@ -98,6 +108,11 @@ void printStatus() {
     	indicator = 'C';
     }
     
+    if (mode == HOME) {
+    	SerialUSB.print("HOME ");
+    } else if (mode == RUN) {
+    	SerialUSB.print("RUN  ");
+    }
 	SerialUSB.print("X1:");
 	SerialUSB.print(XStop1);
 	SerialUSB.print(" X2:");
@@ -110,7 +125,9 @@ void printStatus() {
     SerialUSB.print(" PWM: ");
     SerialUSB.print(pwm_x);
     SerialUSB.print(" X_pos: ");
-    SerialUSB.println(current_x);
+    SerialUSB.print(current_x);
+    SerialUSB.print(" BUT1: ");
+    SerialUSB.println(digitalRead(BUTTON1));
 }
 
 void blinkLights() {
@@ -128,6 +145,7 @@ void loop() {
 	XStop2 = !digitalRead(X_STOP_2);
 	
 	
+	
 	if (mode == RUN) {
 		//Read the knob and generate a PWM value
 		knob_val=analogRead(3);
@@ -141,11 +159,23 @@ void loop() {
 		timer_set_count(TIMER4,timer_get_count(TIMER4)-delta_x);
 		timer_set_count(TIMER1,timer_get_count(TIMER1)-delta_y);
 		
-		//Output the PWM
-		pwmWrite(PWM_PIN_X,pwm_x);
+	} else if (mode == HOME) {
+	
+		if (XStop2 == HIGH) {
+			pwm_x = STOP;
+			pwmWrite(PWM_PIN_X,pwm_x);
+			
+			current_x = 0;
+			timer_set_count(TIMER4, 0);
+			mode = RUN;
+		} else {
+			pwm_x = LOW_SPEED_LEFT;
+		}
+		
 	}
     
-
+	//Output the PWM
+	pwmWrite(PWM_PIN_X,pwm_x);
     
     printStatus();
 
