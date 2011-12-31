@@ -38,8 +38,12 @@ volatile unsigned short pwm_y=0;
 //Homing
 bool XStop1 = 0; //First
 bool XStop2 = 0; //Home
+bool XStop2Last = 0;
+
 bool YStop1 = 0; //First
 bool YStop2 = 0; //Home
+
+bool xHomed = false;
 
 //Debug
 int toggle = 1;
@@ -51,21 +55,24 @@ int lastDebounceTime = 0;
 int debounceDelay = 100;
 
 void homedX() {
-	pwm_x = STOP;
-	pwmWrite(PWM_PIN_X,pwm_x);
+		
+		pwm_x = STOP;
+		pwmWrite(PWM_PIN_X,pwm_x);
 	
-	current_x = 0;
-	timer_set_count(TIMER4, 0);
-	mode = STOP;
+		current_x = 0;
+		timer_set_count(TIMER4, 0);
+	
+		mode = ALL_STOP;
 }
 
 void homedY() {
+	
 	pwm_y = STOP;
 	//pwmWrite(PWM_PIN_Y, pwm_y);
 	
 	current_y = 0;
 	timer_set_count(TIMER1, 0);
-	mode = STOP;
+	mode = ALL_STOP;
 }
 
 void setup() {
@@ -117,8 +124,8 @@ void setup() {
     //Setup stops
     pinMode(X_STOP_1, INPUT);
     pinMode(X_STOP_2, INPUT);
-    attachInterrupt(X_STOP_2, homedX, RISING);
-    //attachInterrupt(Y_STOP_2, homedY, RISING);
+    //attachInterrupt(X_STOP_2, homedX, FALLING);
+    //attachInterrupt(Y_STOP_2, homedY, FALLING);
     
     pinMode(BUTTON1, INPUT);
     
@@ -192,29 +199,41 @@ void checkModeButton() {
     lastButton1State = readingButton1;
 }
 
+void checkEncoders() {
+
+	//Read the clear the encoder registers
+	delta_x=(signed short)timer_get_count(TIMER4);
+	delta_y=(signed short)timer_get_count(TIMER1);
+	current_x+=delta_x;
+	current_y+=delta_y;
+	timer_set_count(TIMER4,timer_get_count(TIMER4)-delta_x);
+	timer_set_count(TIMER1,timer_get_count(TIMER1)-delta_y);
+		
+}
+
 void loop() {
+	
+	checkModeButton();
+    checkEncoders();
+    knob_val=analogRead(3);
 	
 	//Read the stops
 	XStop1 = !digitalRead(X_STOP_1);
 	XStop2 = !digitalRead(X_STOP_2);
 	
-	checkModeButton();
-    
-    knob_val=analogRead(3);
+	if (XStop2Last != XStop2) {
+		
+		if (XStop2 == HIGH) {
+			homedX();
+		}
+		XStop2Last = XStop2;
+	}
     
 	if (mode == RUN) {
 		
 		//Generate PWM value based on knob position
 		pwm_x=32768+(knob_val<<2)-8192;
-		
-		//Read the clear the encoder registers
-		delta_x=(signed short)timer_get_count(TIMER4);
-		delta_y=(signed short)timer_get_count(TIMER1);
-		current_x+=delta_x;
-		current_y+=delta_y;
-		timer_set_count(TIMER4,timer_get_count(TIMER4)-delta_x);
-		timer_set_count(TIMER1,timer_get_count(TIMER1)-delta_y);
-		
+
 	} else if (mode == HOME) {
 	
 		pwm_x = LOW_SPEED_LEFT;
