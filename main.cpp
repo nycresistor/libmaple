@@ -17,8 +17,11 @@
 #define STOP 32768
 #define LOW_SPEED_LEFT (STOP + 2700)
 
-#define HOME 0
-#define RUN 1
+//Modes
+#define NUM_MODES 3
+#define ALL_STOP 0
+#define HOME 1
+#define RUN 2
 
 int mode = 0;
 
@@ -42,6 +45,10 @@ bool YStop2 = 0; //Home
 int toggle = 1;
 int toggle2 = 0;
 char indicator = '0';
+bool button1State;
+bool lastButton1State;
+int lastDebounceTime = 0;
+int debounceDelay = 100;
 
 void setup() {
 
@@ -112,7 +119,12 @@ void printStatus() {
     	SerialUSB.print("HOME ");
     } else if (mode == RUN) {
     	SerialUSB.print("RUN  ");
+    } else if (mode == ALL_STOP) {
+    	SerialUSB.print("STOP ");
+    } else {
+    	SerialUSB.print("ERROR ");
     }
+    SerialUSB.print(mode);
 	SerialUSB.print("X1:");
 	SerialUSB.print(XStop1);
 	SerialUSB.print(" X2:");
@@ -126,8 +138,11 @@ void printStatus() {
     SerialUSB.print(pwm_x);
     SerialUSB.print(" X_pos: ");
     SerialUSB.print(current_x);
-    SerialUSB.print(" BUT1: ");
-    SerialUSB.println(digitalRead(BUTTON1));
+    
+    //SerialUSB.print(" BUT1: ");
+    //SerialUSB.print(button1State);
+    
+    SerialUSB.println();
 }
 
 void blinkLights() {
@@ -138,17 +153,37 @@ void blinkLights() {
     toggle2 ^= 1;
 }
 
+void checkModeButton() {
+	bool readingButton1 = digitalRead(BUTTON1);
+	if (readingButton1 != lastButton1State) {
+        lastDebounceTime = millis();
+    }
+    if ((millis() - lastDebounceTime) > debounceDelay) {
+        
+        if ((button1State != readingButton1) && (readingButton1 == LOW)) {
+        	mode++;
+        	if (mode == NUM_MODES) {
+        		mode = ALL_STOP;
+        	}
+        }
+        button1State = readingButton1;
+        
+    }
+    lastButton1State = readingButton1;
+}
+
 void loop() {
 	
 	//Read the stops
 	XStop1 = !digitalRead(X_STOP_1);
 	XStop2 = !digitalRead(X_STOP_2);
 	
-	
-	
+	checkModeButton();
+    
+    knob_val=analogRead(3);
+    
 	if (mode == RUN) {
-		//Read the knob and generate a PWM value
-		knob_val=analogRead(3);
+		
 		pwm_x=32768+(knob_val<<2)-8192;
 		
 		//Read the clear the encoder registers
@@ -163,7 +198,6 @@ void loop() {
 	
 		if (XStop2 == HIGH) {
 			pwm_x = STOP;
-			pwmWrite(PWM_PIN_X,pwm_x);
 			
 			current_x = 0;
 			timer_set_count(TIMER4, 0);
@@ -172,6 +206,10 @@ void loop() {
 			pwm_x = LOW_SPEED_LEFT;
 		}
 		
+	} else {
+		
+		pwm_x = STOP;
+
 	}
     
 	//Output the PWM
