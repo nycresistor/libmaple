@@ -8,6 +8,9 @@
 #define Y_ENCODER_A 6 //PA8 Timer1_CH1
 #define Y_ENCODER_B 7 //PB9 Timer1_CH2
 
+#define X_STOP_1 2
+#define X_STOP_3 3
+
 unsigned short knob_val=0;
 unsigned short pwm_x=0;
 unsigned short pwm_y=0;
@@ -18,6 +21,10 @@ char indicator = '0';
 
 int toggle = 1;
 int toggle2 = 0;
+
+bool XStop1 = 0; //First
+bool XStop2 = 0; //Middle
+bool XStop3 = 0; //Absolute Home
 
 void setup() {
 
@@ -65,12 +72,23 @@ void setup() {
     pinMode(29, OUTPUT);
     digitalWrite(24,1);
     
+    //Setup stops
+    pinMode(X_STOP_1, INPUT);
+    pinMode(X_STOP_3, INPUT);
+    
     SerialUSB.println("Hello");
 }
 
 void printStatus() {
 
-    SerialUSB.print("KnobVal: ");
+	SerialUSB.print("X1:");
+	SerialUSB.print(XStop1);
+	SerialUSB.print(" X2:");
+	SerialUSB.print(XStop2);
+	SerialUSB.print(" X3:");
+	SerialUSB.print(XStop3);
+	
+    SerialUSB.print(" KnobVal: ");
     SerialUSB.print(knob_val);
     SerialUSB.print(" ");
     SerialUSB.print(indicator);
@@ -89,6 +107,10 @@ void blinkLights() {
 }
 
 void loop() {
+	
+	//Read the stops
+	XStop1 = !digitalRead(X_STOP_1);
+	XStop3 = !digitalRead(X_STOP_3);
 	
 	//Read the knob and generate a PWM value
     knob_val=analogRead(3);
