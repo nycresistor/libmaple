@@ -9,13 +9,13 @@
 #define X_ENCODER_B 9 //PB7 Timer4_CH2
 #define Y_ENCODER_A 6 //PA8 Timer1_CH1
 #define Y_ENCODER_B 7 //PB9 Timer1_CH2
-#define BUTTON1 21
+#define BUTTON1 21    //PC13
 
-#define X_STOP_1 10
-#define X_STOP_2 2
+#define X_STOP_1 10 //PA4
+#define X_STOP_2 2  //PA0
 
 #define STOP 32222
-#define LOW_SPEED_LEFT (STOP + 3100)
+#define LOW_SPEED_LEFT (STOP + 4000)
 
 //Modes
 #define NUM_MODES 3
@@ -58,12 +58,12 @@ void homedX() {
 		
 	if (current_x != 0) {
 		pwm_x = STOP;
+		detachInterrupt(X_STOP_2);
 		pwmWrite(PWM_PIN_X,pwm_x);
-	
 		current_x = 0;
 		timer_set_count(TIMER4, 0);
-	
 		mode = ALL_STOP;
+		xHomed = true;
 	}
 }
 
@@ -104,17 +104,17 @@ void setup() {
     (TIMER4->regs).gen->CCMR1 |= 0x3<<4;  // IC1F Filter
     (TIMER4->regs).gen->CCER &= ~(TIMER_CCER_CC1P); //non-inverted polarity channel 1
     (TIMER4->regs).gen->CCER &= ~(TIMER_CCER_CC2P); //non-inverted polarity channel 2
-    (TIMER4->regs).gen->SMCR |= TIMER_SMCR_SMS_ENCODER3;
-    (TIMER1->regs).gen->CCMR1 |= TIMER_CCMR1_CC2S;
-    (TIMER1->regs).gen->CCMR1 |= TIMER_CCMR1_CC1S;
+    (TIMER4->regs).gen->SMCR |= TIMER_SMCR_SMS_ENCODER3; //Run timer in encoder slave mode. 1 count per edge of either IC1 IC2
+    (TIMER1->regs).gen->CCMR1 |= TIMER_CCMR1_CC2S; //enable input 1
+    (TIMER1->regs).gen->CCMR1 |= TIMER_CCMR1_CC1S; //enable input 2
     (TIMER1->regs).gen->CCMR1 |= 0x3<<12; // IC2F Filter
     (TIMER1->regs).gen->CCMR1 |= 0x3<<4;  // IC1F Filter
-    (TIMER1->regs).gen->CCER &= ~(TIMER_CCER_CC1P);
-    (TIMER1->regs).gen->CCER &= ~(TIMER_CCER_CC2P);
-    (TIMER1->regs).gen->SMCR |= TIMER_SMCR_SMS_ENCODER3;
-    timer_generate_update(TIMER1);
-    timer_generate_update(TIMER4);
-    timer_resume(TIMER1);
+    (TIMER1->regs).gen->CCER &= ~(TIMER_CCER_CC1P); //non-inverted polarity channel 1
+    (TIMER1->regs).gen->CCER &= ~(TIMER_CCER_CC2P); //non-inverted polarity channel 2
+    (TIMER1->regs).gen->SMCR |= TIMER_SMCR_SMS_ENCODER3; //Run timer in encoder slave mode. 1 count per edge of either IC1 IC2
+    timer_generate_update(TIMER1); //Force update of buffered registers
+    timer_generate_update(TIMER4); //Force update of buffered registers
+    timer_resume(TIMER1); 
     timer_resume(TIMER4);   
         
     //Debug LEDs    
@@ -134,6 +134,14 @@ void setup() {
     SerialUSB.println("Hello");
 }
 
+void printData(){
+    SerialUSB.print(millis());
+    SerialUSB.print(",");
+    SerialUSB.print(pwm_x);
+    SerialUSB.print(","); 
+    SerialUSB.println(current_x);
+}
+    
 void printStatus() {
 	
 	if (knob_val < 1900) {
@@ -191,6 +199,8 @@ void checkModeButton() {
         
         if ((button1State != readingButton1) && (readingButton1 == LOW)) {
         	mode++;
+        	if (mode == HOME && xHomed == true)
+        	    mode = RUN;
         	if (mode == NUM_MODES) {
         		mode = ALL_STOP;
         	}
@@ -215,13 +225,13 @@ void checkEncoders() {
 
 void loop() {
 	
-	checkModeButton();
+    checkModeButton();
     checkEncoders();
     knob_val=analogRead(3);
 	
 	// Read the stops
-// 	XStop1 = !digitalRead(X_STOP_1);
-// 	XStop2 = !digitalRead(X_STOP_2);
+ 	XStop1 = !digitalRead(X_STOP_1);
+ 	XStop2 = !digitalRead(X_STOP_2);
 // 	
 // 	if (XStop2Last != XStop2) {
 // 		
@@ -248,9 +258,11 @@ void loop() {
     
 	//Output the PWM
 	pwmWrite(PWM_PIN_X,pwm_x);
-    
-    printStatus();
-
+    if(mode != RUN){
+        printStatus();
+    } else {
+        printData();
+    }
     blinkLights();
     
     //delay(10);
