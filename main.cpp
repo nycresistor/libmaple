@@ -55,6 +55,18 @@ bool lastButton1State;
 int lastDebounceTime = 0;
 int debounceDelay = 100;
 
+//PID
+#define X_KP 12.0
+#define X_KD 0.0
+#define X_KI 0.0
+
+double x_velocitySetpoint=0;
+double x_velocity=0;
+double x_velocitySignal;
+
+PID xSpeedPID(&x_velocity,&x_velocitySignal,&x_velocitySetpoint,X_KP,X_KD,X_KI,DIRECT);
+
+
 void homedX() {
 		
 	if (current_x != 0) {
