@@ -56,7 +56,7 @@ int lastDebounceTime = 0;
 int debounceDelay = 100;
 
 //PID
-#define X_KP 12.0
+#define X_KP 500.0
 #define X_KD 0.0
 #define X_KI 0.0
 
@@ -66,6 +66,9 @@ double x_velocitySignal;
 
 PID xSpeedPID(&x_velocity,&x_velocitySignal,&x_velocitySetpoint,X_KP,X_KD,X_KI,DIRECT);
 
+//Timing
+unsigned long time=0;
+unsigned int deltaTime=0;
 
 void homedX() {
 		
@@ -144,14 +147,20 @@ void setup() {
     
     pinMode(BUTTON1, INPUT);
     
+    xSpeedPID.SetMode(AUTOMATIC);
+    xSpeedPID.SetOutputLimits(-8192,8192);
+    xSpeedPID.SetSampleTime(10);    
     SerialUSB.println("Hello");
 }
 
 void printData(){
-    SerialUSB.print(millis());
-    SerialUSB.print(",");
+    SerialUSB.print("Velocity Setpoint:");
+    SerialUSB.print(x_velocitySetpoint);
+    SerialUSB.print(" Velocity:");
+    SerialUSB.print(x_velocity);
+    SerialUSB.print(" PWM:");
     SerialUSB.print(pwm_x);
-    SerialUSB.print(","); 
+    SerialUSB.print(" Current X:"); 
     SerialUSB.println(current_x);
 }
     
@@ -233,6 +242,9 @@ void checkEncoders() {
 	current_y+=delta_y;
 	timer_set_count(TIMER4,timer_get_count(TIMER4)-delta_x);
 	timer_set_count(TIMER1,timer_get_count(TIMER1)-delta_y);
+	unsigned old_time = time;
+	time=micros();
+	deltaTime=time-old_time;
 		
 }
 
@@ -257,8 +269,14 @@ void loop() {
 	if (mode == RUN) {
 		
 		//Generate PWM value based on knob position
-		pwm_x=32768+(knob_val<<2)-8192;
-
+		//pwm_x=32768+(knob_val<<2)-8192;
+                
+                //Generate PWM from the speed PID
+                x_velocitySetpoint=(float)(knob_val-2048)/200.0;
+                x_velocity=(x_velocity*0.75)+((((double)(delta_x*1000)/(double)deltaTime))*0.25);
+                xSpeedPID.Compute();
+                pwm_x=32768+(x_velocitySignal);
+                
 	} else if (mode == HOME) {
 	
 		pwm_x = LOW_SPEED_LEFT;
