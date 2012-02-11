@@ -56,8 +56,8 @@ int lastDebounceTime = 0;
 int debounceDelay = 100;
 
 //PID
-#define X_KP 4000.0
-#define X_KD 400.0
+#define X_KP 3000.0
+#define X_KD 1500.0
 #define X_KI 0.0
 
 double x_velocitySetpoint=0;
@@ -148,7 +148,7 @@ void setup() {
     pinMode(BUTTON1, INPUT);
     
     xSpeedPID.SetMode(AUTOMATIC);
-    xSpeedPID.SetOutputLimits(-8192,8192);
+    xSpeedPID.SetOutputLimits(-15000,15000);
     xSpeedPID.SetSampleTime(10);    
     SerialUSB.println("Hello");
 }
@@ -254,7 +254,7 @@ void loop() {
     checkModeButton();
     checkEncoders();
     knob_val=analogRead(3);
-    x_velocity=(x_velocity*0.75)+((((double)(delta_x*1000)/(double)deltaTime))*0.25);
+    x_velocity=(x_velocity*0.50)+((((double)(delta_x*1000)/(double)deltaTime))*0.50); //weighted moving average
     xSpeedPID.Compute();
     pwm_x=32768-(x_velocitySignal);	
 	// Read the stops
@@ -275,7 +275,7 @@ void loop() {
 		//pwm_x=32768+(knob_val<<2)-8192;
                 
                 //Generate PWM from the speed PID
-                x_velocitySetpoint=(float)(knob_val-2048)/50.0;
+                x_velocitySetpoint=(float)(knob_val-2048)/30.0;
                 
 	} else if (mode == HOME) {
 	
