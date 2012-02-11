@@ -208,7 +208,7 @@ void checkModeButton() {
 	if (readingButton1 != lastButton1State) {
         lastDebounceTime = millis();
     }
-    if ((millis() - lastDebounceTime) > debounceDelay) {
+    if (((int)millis() - lastDebounceTime) > debounceDelay) {
         
         if ((button1State != readingButton1) && (readingButton1 == LOW)) {
         	mode++;
