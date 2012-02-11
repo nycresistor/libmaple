@@ -57,7 +57,7 @@ int debounceDelay = 100;
 
 //PID
 #define X_KP 4000.0
-#define X_KD 0.0
+#define X_KD 400.0
 #define X_KI 0.0
 
 double x_velocitySetpoint=0;
