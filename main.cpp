@@ -58,7 +58,7 @@ int debounceDelay = 100;
 //PID
 #define X_KP 500.0
 #define X_KD 0.0
-#define X_KI 0.0
+#define X_KI 50.0
 
 double x_velocitySetpoint=0;
 double x_velocity=0;
@@ -272,10 +272,10 @@ void loop() {
 		//pwm_x=32768+(knob_val<<2)-8192;
                 
                 //Generate PWM from the speed PID
-                x_velocitySetpoint=(float)(knob_val-2048)/200.0;
+                x_velocitySetpoint=(float)(knob_val-2048)/100.0;
                 x_velocity=(x_velocity*0.75)+((((double)(delta_x*1000)/(double)deltaTime))*0.25);
                 xSpeedPID.Compute();
-                pwm_x=32768+(x_velocitySignal);
+                pwm_x=32768-(x_velocitySignal);
                 
 	} else if (mode == HOME) {
 	
