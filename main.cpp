@@ -3,6 +3,7 @@
 #include "wirish.h"
 #include "usb.h"
 #include "timer.h"
+#include "libraries/PID_v1/PID_v1.h"
 
 #define PWM_PIN_X 11
 #define X_ENCODER_A 5 //PB6 Timer4_CH1

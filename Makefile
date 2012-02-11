@@ -81,7 +81,7 @@ LIBMAPLE_MODULES += $(SRCROOT)/libraries/Wire
 
 # Experimental libraries:
 LIBMAPLE_MODULES += $(SRCROOT)/libraries/FreeRTOS
-
+LIBMAPLE_MODULES += $(SRCROOT)/libraries/PID_v1
 # Call each module's rules.mk:
 $(foreach m,$(LIBMAPLE_MODULES),$(eval $(call LIBMAPLE_MODULE_template,$(m))))
 
